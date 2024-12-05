@@ -1,21 +1,39 @@
 import streamlit as st
 from streamlit_authenticator import Authenticate
 from streamlit_option_menu import option_menu
+import pandas as pd 
 
 # Nos données utilisateurs doivent respecter ce format
 
-lesDonneesDesComptes = {'usernames': {'utilisateur': {'name': 'utilisateur',
-   'password': 'utilisateurMDP',
-   'email': 'utilisateur@gmail.com',
-   'failed_login_attemps': 0, # Sera géré automatiquement
-   'logged_in': False, # Sera géré automatiquement
-   'role': 'utilisateur'},
-  'root': {'name': 'root',
-   'password': 'rootMDP',
-   'email': 'admin@gmail.com',
-   'failed_login_attemps': 0, # Sera géré automatiquement
-   'logged_in': False, # Sera géré automatiquement
-   'role': 'administrateur'}}}
+#Fonction pour charger les données des comptes depuis un fichier CSV
+
+def charger_comptes(csv_path):
+    try:
+        # Lecture du fichier CSV
+        data = pd.read_csv(csv_path)
+        # Transformation des données en un dictionnaire au format attendu
+        comptes = {
+            "usernames": {
+                row["name"]: {
+                    "name": row["name"],
+                    "password": row["password"],
+                    "email": row["email"],
+                    "failed_login_attemps": int(row["failed_login_attempts"]),
+                    "logged_in": bool(row["logged_in"]),
+                    "role": row["role"]
+                } for _, row in data.iterrows()
+            }
+        }
+        return comptes
+    except Exception as e:
+        st.error(f"Erreur lors du chargement des comptes depuis le fichier CSV : {e}")
+        return None
+# Chemin vers le fichier CSV contenant les comptes
+csv_path = "comptes_utilisateurs.csv"
+# Charger les comptes
+lesDonneesDesComptes = charger_comptes(csv_path)
+if not lesDonneesDesComptes:
+    st.stop()  # Arrêter l'exécution si les données ne peuvent pas être chargées
 
 authenticator = Authenticate(
     lesDonneesDesComptes, # Les données des comptes
@@ -31,10 +49,8 @@ def accueil():
     
     add_selectbox = st.sidebar.selectbox(
             "Bienvenue",
-            ("Acceuil", "Photos") 
-              
+            ("Acceuil", "Photos")       
         )
-
         # On indique au programme quoi faire en fonction du choix
     if add_selectbox == "Acceuil":
             st.write("Bienvenue sur la page d'accueil !")
@@ -66,6 +82,4 @@ elif st.session_state["authentication_status"] is False:
     st.error("L'username ou le password est/sont incorrect")
 elif st.session_state["authentication_status"] is None:
     st.warning('Les champs username et mot de passe doivent être remplie')
-
-
 
